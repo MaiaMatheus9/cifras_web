@@ -26,11 +26,40 @@ def executar_testes() -> list:
         except ValueError:
             ok = True
         t(f"Entrada inválida {entrada} gera erro", ok)
+    t("Arranjo com k > n vale zero", cifras.chaves_sem_repeticao(2, 3) == 0)
+    t("Chave sem letras A-Z gera erro",
+      _gera_value_error(lambda: cifras.cifrar("texto", "123!")))
+    t("Texto vazio é aceito", cifras.cifrar("", "CHAVE") == "")
+
+    return casos
+
+
+def _gera_value_error(funcao):
+    try:
+        funcao()
+    except ValueError:
+        return True
+    return False
+
+
+def executar_testes_api() -> list:
+    # Import local para evitar ciclo: app importa este módulo para expor a rota /api/testes.
+    from app import app
+
+    cliente = app.test_client()
+    casos = []
+    for nome, resposta in (
+        ("API rejeita JSON malformado", cliente.post("/api/cifra", data="{", content_type="application/json")),
+        ("API rejeita corpo que não é objeto", cliente.post("/api/cifra", json=[1])),
+        ("API rejeita modo desconhecido", cliente.post("/api/cifra", json={"texto": "oi", "chave": "A", "modo": "outro"})),
+        ("API rejeita texto que não é string", cliente.post("/api/cifra", json={"texto": 1, "chave": "A", "modo": "cifrar"})),
+    ):
+        casos.append({"teste": nome, "ok": resposta.status_code == 400, "detalhe": f"HTTP {resposta.status_code}"})
     return casos
 
 
 if __name__ == "__main__":
-    for c in executar_testes():
+    for c in executar_testes() + executar_testes_api():
         print("OK  " if c["ok"] else "FALHA", c["teste"])
     with open("resultados.csv", "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=["n", "k", "N", "digitos", "bits", "tempo"])
