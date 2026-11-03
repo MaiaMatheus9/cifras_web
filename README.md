@@ -13,7 +13,7 @@ onde |Σ| é o tamanho do alfabeto e k é o tamanho da chave. Também implementa
 ## 1. Como acessar
 
 ### Requisitos
-- Python **3.8 ou superior** (o código usa `math.perm`, disponível a partir da 3.8)
+- Python **3.9 ou superior** (requisito da versão atual do Flask instalada por `requirements.txt`; `math.perm` também requer Python 3.8+)
 - `pip` (já vem com o Python)
 - Um navegador moderno
 
