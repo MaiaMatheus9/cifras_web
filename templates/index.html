@@ -63,16 +63,30 @@ td.n{font-family:ui-monospace,Consolas,monospace;word-break:break-all}
   <p class="out" id="res"></p>
 </div>
 
-<h2>3. Testes e análise de resultados</h2>
+<h2>3. Força bruta</h2>
+<p>O atacante conhece o texto original e o texto cifrado (ataque de texto conhecido) e sabe o tamanho k da chave. Ele testa as 26<sup>k</sup> chaves em ordem (AA…A, AA…B, …), decifra o texto com cada uma e para quando o resultado bate. O teste roda no seu navegador, dividido entre os núcleos do processador (Web Workers). Por isso a taxa real fica próxima dos 10<sup>9</sup> chaves/s usados na estimativa. O limite é k = 8: com k = 9 o pior caso já passa de 1,5 hora.</p>
+<div class="card noprint">
+  <div class="row">
+    <label style="flex:2;min-width:200px">Texto original<input id="fbTxt" value="ATAQUE AO AMANHECER"></label>
+    <label>Chave (1 a 8 letras)<input id="fbChv" value="LIMAO" maxlength="8"></label>
+    <button onclick="quebrar()">Quebrar</button><button class="alt" onclick="parar()">Parar</button>
+  </div>
+  <p class="out" id="fbCif"></p>
+  <progress id="fbBar" value="0" max="1" style="width:100%"></progress>
+  <p class="sub" id="fbSt"></p>
+  <p id="fbRes" aria-live="polite"></p>
+</div>
+
+<h2>4. Testes e análise de resultados</h2>
 <div class="card"><div class="wrap"><table><thead><tr><th class="l">Teste</th><th>Resultado</th></tr></thead><tbody id="tt"></tbody></table></div></div>
 <p><b>Espaço de chaves para |Σ| = 26</b> (tempo de força bruta a 10<sup>9</sup> chaves/s):</p>
 <div class="card"><div class="wrap"><table><thead><tr><th>k</th><th class="l">N = 26<sup>k</sup></th><th>Dígitos</th><th>Bits</th><th>Tempo</th></tr></thead><tbody id="tb"></tbody></table></div></div>
 
-<h2>4. Relatório técnico</h2>
+<h2>5. Relatório técnico</h2>
 <p class="noprint"><button onclick="window.print()">Imprimir / salvar em PDF</button></p>
 <p><b>Objetivo.</b> Quantificar o espaço de chaves de cifras polialfabéticas aplicando contagem, princípio multiplicativo e combinações, e verificar a fórmula N = |Σ|<sup>k</sup> por implementação e testes.</p>
 <p><b>Metodologia.</b> Implementamos em Python o cálculo de N com inteiros de precisão arbitrária (sem overflow), os arranjos A(n,k), as combinações C(n,k) e a cifra de Vigenère. Validamos a fórmula contra a enumeração exaustiva de todas as chaves em casos pequenos e testamos o princípio multiplicativo (N(k+1) = n·N(k)), o vetor clássico "ATTACKATDAWN"/"LEMON" → "LXFOPVEFRNHR", a reversibilidade da cifra e a rejeição de entradas inválidas.</p>
-<p><b>Resultados.</b> A tabela da seção 3 é gerada pelo próprio código. O espaço cresce exponencialmente em k: a cada letra adicionada, N é multiplicado por 26 (cerca de 4,7 bits a mais). Chaves curtas caem rápido a tempos de busca viáveis; chaves com mais de ~15 letras tornam a busca exaustiva impraticável nas taxas consideradas. Restringir a chave a símbolos distintos (arranjo) reduz N, e tratar chaves como conjuntos (combinação) reduz ainda mais.</p>
+<p><b>Resultados.</b> A tabela da seção 4 é gerada pelo próprio código. O espaço cresce exponencialmente em k: a cada letra adicionada, N é multiplicado por 26 (cerca de 4,7 bits a mais). Chaves curtas caem rápido a tempos de busca viáveis; chaves com mais de ~15 letras tornam a busca exaustiva impraticável nas taxas consideradas. Restringir a chave a símbolos distintos (arranjo) reduz N, e tratar chaves como conjuntos (combinação) reduz ainda mais.</p>
 <p><b>Conclusão.</b> O tamanho da chave é o parâmetro dominante do espaço de chaves. Porém, N grande não implica segurança total: Vigenère é vulnerável a análise de frequência e ao teste de Kasiski, que descobrem k sem busca exaustiva. O espaço de chaves é condição necessária, não suficiente.</p>
 
 </main>
@@ -87,6 +101,45 @@ async function calc(){
 async function cif(modo){
   const r=await fetch('/api/cifra',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:$('txt').value,chave:$('chv').value,modo})}), d=await r.json();
   $('res').textContent=r.ok?d.resultado:d.erro;
+}
+// Worker: testa as chaves cuja 1ª letra está em [de, ate). Cada candidata decifra o texto e compara com o original.
+const fbCodigo=`onmessage=e=>{const {c,p,k,de,ate}=e.data,key=new Int32Array(k),L=c.length,M=26**(k-1);let feitos=0;
+for(let a=de;a<ate;a++){key.fill(0);key[0]=a;
+for(let m=0;m<M;m++){let i=0;while(i<L&&(c[i]-key[i%k]+26)%26===p[i])i++;
+if(i===L)return postMessage({achou:[...key],feitos:feitos+m+1});
+for(let j=k-1;j>0&&++key[j]===26;j--)key[j]=0;
+if((m&0xFFFFFF)===0xFFFFFF)postMessage({feitos:feitos+m+1});}
+feitos+=M;}postMessage({feitos});}`;
+const fbUrl=URL.createObjectURL(new Blob([fbCodigo],{type:'text/javascript'}));
+let fbWs=[];
+const letras=s=>[...s.toUpperCase()].filter(x=>x>='A'&&x<='Z').map(x=>x.charCodeAt(0)-65);
+const tempo=s=>s<60?s.toFixed(2)+' s':(s/60).toFixed(2)+' min';
+function parar(){fbWs.forEach(w=>w.terminate());fbWs=[]}
+async function quebrar(){
+  parar();$('fbRes').textContent='';$('fbBar').value=0;
+  const p=letras($('fbTxt').value),chave=letras($('fbChv').value),k=chave.length;
+  if(k<1||k>8)return $('fbSt').textContent='A chave precisa ter de 1 a 8 letras A-Z.';
+  if(p.length<k)return $('fbSt').textContent='O texto precisa ter pelo menos k letras A-Z.';
+  const r=await fetch('/api/cifra',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:$('fbTxt').value,chave:$('fbChv').value,modo:'cifrar'})}),d=await r.json();
+  if(!r.ok)return $('fbSt').textContent=d.erro;
+  $('fbCif').textContent='Cifrado: '+d.resultado;
+  const c=letras(d.resultado),N=26**k,W=Math.min(navigator.hardwareConcurrency||4,26),cont=Array(W).fill(0),t0=performance.now();
+  const est=`Pior caso estimado a 10⁹ chaves/s: ${tempo(N/1e9)}`;
+  for(let w=0;w<W;w++){
+    const wk=new Worker(fbUrl);fbWs.push(wk);
+    wk.onmessage=e=>{
+      cont[w]=e.data.feitos;
+      const t=(performance.now()-t0)/1000,tot=cont.reduce((a,b)=>a+b),taxa=tot/t;
+      $('fbBar').value=tot/N;
+      $('fbSt').textContent=`${fmt(String(tot))} de ${fmt(String(N))} chaves · ${tempo(t)} · ${fmt(String(Math.round(taxa)))} chaves/s · ${W} workers`;
+      if(e.data.achou){
+        parar();
+        $('fbRes').innerHTML=`<b>Chave encontrada: ${e.data.achou.map(v=>String.fromCharCode(65+v)).join('')}</b> em ${tempo(t)}, após ≈ ${fmt(String(tot))} chaves testadas.<br>${est} · pior caso na taxa medida: ${tempo(N/taxa)}.`;
+      }
+    };
+    wk.postMessage({c,p,k,de:Math.floor(26*w/W),ate:Math.floor(26*(w+1)/W)});
+  }
+  $('fbSt').textContent=`Testando ${fmt(String(N))} chaves… ${est}`;
 }
 async function init(){
   calc();

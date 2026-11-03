@@ -73,8 +73,9 @@ Para encerrar o servidor, pressione `Ctrl + C` no terminal.
 | Calculadora (topo) | Calcula N = \|Σ\|^k para \|Σ\| e k de 1 a 100. Mostra nº de dígitos, bits de segurança, tempo estimado de força bruta, arranjo A(n,k) e combinação C(n,k). |
 | 1. Conceitos fundamentais | Cifra polialfabética, princípio multiplicativo, arranjos, combinações e segurança. |
 | 2. Algoritmo | Demonstração interativa da cifra de Vigenère (cifrar e decifrar). |
-| 3. Testes e resultados | Os testes são executados ao vivo na página, mais uma tabela de N para k = 1 a 20 (\|Σ\| = 26). |
-| 4. Relatório técnico | Objetivo, metodologia, resultados e conclusão. O botão "Imprimir / salvar em PDF" gera o arquivo pelo navegador. |
+| 3. Força bruta | Quebra ao vivo uma chave de Vigenère de até 8 letras, testando as 26^k chaves em Web Workers (um por núcleo), e compara o tempo real com a estimativa a 10⁹ chaves/s. |
+| 4. Testes e resultados | Os testes são executados ao vivo na página, mais uma tabela de N para k = 1 a 20 (\|Σ\| = 26). |
+| 5. Relatório técnico | Objetivo, metodologia, resultados e conclusão. O botão "Imprimir / salvar em PDF" gera o arquivo pelo navegador. |
 
 ---
 
