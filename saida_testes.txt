@@ -1,0 +1,12 @@
+OK   César: 26^1 = 26
+OK   26^5 = 11.881.376
+OK   Fórmula = enumeração (n,k pequenos)
+OK   Princípio multiplicativo: N(k+1) = N(k)·n
+OK   Arranjo A(26,3) = 15.600
+OK   Combinação C(26,3) = 2.600
+OK   A(n,k) = C(n,k)·k!
+OK   Vetor clássico Vigenère (LEMON)
+OK   Cifrar e decifrar devolve o original
+OK   Entrada inválida (0, 3) gera erro
+OK   Entrada inválida (26, 0) gera erro
+resultados.csv gerado.

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cifras Polialfabéticas e Combinatória</title>
+<style>
+:root{--bg:#f2f4f6;--card:#fff;--ink:#14213d;--mut:#55627a;--brass:#a86a12;--teal:#0f766e;--line:#d5dbe3;--bad:#b42318}
+@media(prefers-color-scheme:dark){:root{--bg:#10151f;--card:#18202e;--ink:#e8ecf3;--mut:#9aa7bd;--brass:#e0a64a;--teal:#4fc3b8;--line:#2b364a;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 Georgia,"Iowan Old Style",serif}
+main{max-width:860px;margin:0 auto;padding:0 20px 60px}
+h1,h2,h3,button,input,label,th{font-family:"Trebuchet MS","Segoe UI",sans-serif}
+h1{font-size:clamp(1.9rem,5vw,2.8rem);line-height:1.15;margin:40px 0 8px}
+h2{font-size:1.45rem;margin:48px 0 8px;border-bottom:2px solid var(--brass);padding-bottom:4px}
+.sub{color:var(--mut);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin:16px 0}
+.big{font:700 clamp(1rem,3.4vw,1.7rem)/1.3 ui-monospace,Consolas,monospace;color:var(--brass);word-break:break-all;margin:10px 0}
+.f{font:italic 1.2rem Georgia,serif;text-align:center;margin:14px 0}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:end}
+label{display:flex;flex-direction:column;font-size:.9rem;color:var(--mut);gap:4px}
+input,textarea{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+input[type=number]{width:100px}
+button{font-weight:700;padding:9px 16px;border:0;border-radius:6px;background:var(--teal);color:#fff;cursor:pointer}
+button.alt{background:var(--brass)}
+:focus-visible{outline:3px solid var(--brass);outline-offset:2px}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child,td.l,th.l{text-align:left}
+td.n{font-family:ui-monospace,Consolas,monospace;word-break:break-all}
+.wrap{overflow-x:auto}.ok{color:var(--teal)}.no{color:var(--bad)}
+.out{font-family:ui-monospace,Consolas,monospace;word-break:break-all;min-height:1.6em}
+@media print{.noprint{display:none}body{background:#fff;color:#000}.card{border:0;padding:0}}
+</style></head><body><main>
+
+<h1>Cifras Polialfabéticas e Combinatória</h1>
+<p class="sub">Matemática Discreta, Grupo 9: contagem, princípio multiplicativo e combinações.</p>
+
+<div class="card noprint">
+  <strong>Calculadora do espaço de chaves</strong>
+  <div class="row">
+    <label>Tamanho do alfabeto |Σ|<input id="n" type="number" min="1" max="100" value="26"></label>
+    <label>Tamanho da chave k<input id="k" type="number" min="1" max="100" value="8"></label>
+    <button onclick="calc()">Calcular N</button>
+  </div>
+  <div class="f">N = |Σ|<sup>k</sup></div>
+  <div class="big" id="N">…</div>
+  <div id="det" class="sub"></div>
+</div>
+
+<h2>1. Conceitos fundamentais</h2>
+<p><b>Cifra polialfabética.</b> Em vez de um único alfabeto de substituição (como na Cifra de César), usa-se uma chave de k letras que se repete: cada posição do texto é deslocada por uma letra diferente da chave. A cifra de Vigenère é o exemplo clássico: C<sub>i</sub> = (P<sub>i</sub> + K<sub>i mod k</sub>) mod 26.</p>
+<p><b>Princípio multiplicativo.</b> Se uma tarefa tem k etapas independentes e a etapa j pode ser feita de m<sub>j</sub> modos, o total é m<sub>1</sub>·m<sub>2</sub>·…·m<sub>k</sub>. Numa chave de k letras, cada posição admite |Σ| símbolos, logo <b>N = |Σ|<sup>k</sup></b>. Para |Σ| = 26 e k = 1 temos 26 chaves (César); cada letra a mais multiplica o espaço por 26.</p>
+<p><b>Arranjos e combinações.</b> Se a chave não pode repetir símbolos, o total cai para A(n,k) = n!/(n−k)!. Se apenas o <i>conjunto</i> de símbolos importa (a ordem não), usa-se C(n,k) = n!/(k!(n−k)!), e A(n,k) = C(n,k)·k!. A calculadora acima mostra os três valores.</p>
+<p><b>Segurança.</b> log<sub>2</sub>N mede a "força" da chave em bits. Estimamos o tempo de força bruta supondo 10<sup>9</sup> chaves testadas por segundo.</p>
+
+<h2>2. Algoritmo</h2>
+<p>O código comentado está em <code>cifras.py</code>: <code>espaco_chaves(n,k)</code> multiplica |Σ| k vezes (complexidade O(k) multiplicações); <code>chaves_sem_repeticao</code> e <code>chaves_combinacao</code> tratam os casos A(n,k) e C(n,k); <code>cifrar</code> e <code>decifrar</code> implementam Vigenère. Experimente:</p>
+<div class="card noprint">
+  <div class="row">
+    <label style="flex:2;min-width:200px">Texto<input id="txt" value="ATAQUE AO AMANHECER"></label>
+    <label>Chave<input id="chv" value="LIMAO"></label>
+    <button onclick="cif('cifrar')">Cifrar</button><button class="alt" onclick="cif('decifrar')">Decifrar</button>
+  </div>
+  <p class="out" id="res"></p>
+</div>
+
+<h2>3. Testes e análise de resultados</h2>
+<div class="card"><div class="wrap"><table><thead><tr><th class="l">Teste</th><th>Resultado</th></tr></thead><tbody id="tt"></tbody></table></div></div>
+<p><b>Espaço de chaves para |Σ| = 26</b> (tempo de força bruta a 10<sup>9</sup> chaves/s):</p>
+<div class="card"><div class="wrap"><table><thead><tr><th>k</th><th class="l">N = 26<sup>k</sup></th><th>Dígitos</th><th>Bits</th><th>Tempo</th></tr></thead><tbody id="tb"></tbody></table></div></div>
+
+<h2>4. Relatório técnico</h2>
+<p class="noprint"><button onclick="window.print()">Imprimir / salvar em PDF</button></p>
+<p><b>Objetivo.</b> Quantificar o espaço de chaves de cifras polialfabéticas aplicando contagem, princípio multiplicativo e combinações, e verificar a fórmula N = |Σ|<sup>k</sup> por implementação e testes.</p>
+<p><b>Metodologia.</b> Implementamos em Python o cálculo de N com inteiros de precisão arbitrária (sem overflow), os arranjos A(n,k), as combinações C(n,k) e a cifra de Vigenère. Validamos a fórmula contra a enumeração exaustiva de todas as chaves em casos pequenos e testamos o princípio multiplicativo (N(k+1) = n·N(k)), o vetor clássico "ATTACKATDAWN"/"LEMON" → "LXFOPVEFRNHR", a reversibilidade da cifra e a rejeição de entradas inválidas.</p>
+<p><b>Resultados.</b> A tabela da seção 3 é gerada pelo próprio código. O espaço cresce exponencialmente em k: a cada letra adicionada, N é multiplicado por 26 (cerca de 4,7 bits a mais). Chaves curtas caem rápido a tempos de busca viáveis; chaves com mais de ~15 letras tornam a busca exaustiva impraticável nas taxas consideradas. Restringir a chave a símbolos distintos (arranjo) reduz N, e tratar chaves como conjuntos (combinação) reduz ainda mais.</p>
+<p><b>Conclusão.</b> O tamanho da chave é o parâmetro dominante do espaço de chaves. Porém, N grande não implica segurança total: Vigenère é vulnerável a análise de frequência e ao teste de Kasiski, que descobrem k sem busca exaustiva. O espaço de chaves é condição necessária, não suficiente.</p>
+
+</main>
+<script>
+const $=id=>document.getElementById(id), fmt=s=>s.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+async function calc(){
+  const r=await fetch(`/api/espaco?n=${$('n').value}&k=${$('k').value}`), d=await r.json();
+  if(!r.ok){$('N').textContent=d.erro;$('det').textContent='';return}
+  $('N').textContent=fmt(d.N);
+  $('det').innerHTML=`${d.digitos} dígitos · ${d.bits} bits · força bruta a 10⁹ chaves/s: ${d.tempo}<br>Sem repetição A(n,k) = ${fmt(d.arranjo)} · Combinação C(n,k) = ${fmt(d.combinacao)}`;
+}
+async function cif(modo){
+  const r=await fetch('/api/cifra',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:$('txt').value,chave:$('chv').value,modo})}), d=await r.json();
+  $('res').textContent=r.ok?d.resultado:d.erro;
+}
+async function init(){
+  calc();
+  const t=await (await fetch('/api/testes')).json();
+  $('tt').innerHTML=t.map(x=>`<tr><td class="l">${x.teste}</td><td class="${x.ok?'ok':'no'}">${x.ok?'passou':'falhou'}</td></tr>`).join('');
+  const b=await (await fetch('/api/tabela')).json();
+  $('tb').innerHTML=b.map(x=>`<tr><td>${x.k}</td><td class="n l">${fmt(x.N)}</td><td>${x.digitos}</td><td>${x.bits}</td><td>${x.tempo}</td></tr>`).join('');
+}
+init();
+</script></body></html>
