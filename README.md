@@ -73,7 +73,7 @@ Para encerrar o servidor, pressione `Ctrl + C` no terminal.
 | Calculadora (topo) | Calcula N = \|Σ\|^k para \|Σ\| e k de 1 a 100. Mostra nº de dígitos, bits de segurança, tempo estimado de força bruta, arranjo A(n,k) e combinação C(n,k). |
 | 1. Conceitos fundamentais | Cifra polialfabética, princípio multiplicativo, arranjos, combinações e segurança. |
 | 2. Algoritmo | Demonstração interativa da cifra de Vigenère (cifrar e decifrar). |
-| 3. Força bruta | Quebra ao vivo uma chave de Vigenère de até 8 letras, testando as 26^k chaves em Web Workers (um por núcleo), e compara o tempo real com a estimativa a 10⁹ chaves/s. |
+| 3. Força bruta | Quebra ao vivo uma chave de Vigenère de até 8 letras, testando as 26^k chaves em Web Workers (um por núcleo disponível), e compara a taxa medida no navegador com a estimativa teórica a 10⁹ chaves/s. |
 | 4. Testes e resultados | Os testes são executados ao vivo na página, mais uma tabela de N para k = 1 a 20 (\|Σ\| = 26). |
 | 5. Relatório técnico | Objetivo, metodologia, resultados e conclusão. O botão "Imprimir / salvar em PDF" gera o arquivo pelo navegador. |
 
@@ -148,7 +148,7 @@ curl "http://127.0.0.1:5000/api/espaco?n=26&k=10"
 
 - A cifra processa apenas letras **A–Z** (sem acento). Espaços, números, pontuação e letras acentuadas passam sem alteração. A chave usa só as letras A–Z que contiver.
 - A calculadora aceita n e k entre **1 e 100**, para manter a resposta de tamanho razoável.
-- O tempo de força bruta é uma **estimativa** que supõe 10⁹ chaves testadas por segundo.
+- O tempo teórico de força bruta é uma **estimativa** que supõe 10⁹ chaves testadas por segundo. A taxa medida na demonstração varia conforme o navegador, o processador e o tamanho do texto.
 - Um espaço de chaves grande não garante segurança: Vigenère é vulnerável à análise de frequência e ao teste de Kasiski, que descobrem k sem busca exaustiva. O espaço de chaves é condição necessária, não suficiente.
 - O `app.py` roda com `debug=True`, o que serve para desenvolvimento local. Não use esse modo em um servidor público.
 

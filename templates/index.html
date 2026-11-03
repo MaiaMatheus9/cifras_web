@@ -64,7 +64,7 @@ td.n{font-family:ui-monospace,Consolas,monospace;word-break:break-all}
 </div>
 
 <h2>3. Força bruta</h2>
-<p>O atacante conhece o texto original e o texto cifrado (ataque de texto conhecido) e sabe o tamanho k da chave. Ele testa as 26<sup>k</sup> chaves em ordem (AA…A, AA…B, …), decifra o texto com cada uma e para quando o resultado bate. O teste roda no seu navegador, dividido entre os núcleos do processador (Web Workers). Por isso a taxa real fica próxima dos 10<sup>9</sup> chaves/s usados na estimativa. O limite é k = 8: com k = 9 o pior caso já passa de 1,5 hora.</p>
+<p>O atacante conhece o texto original e o texto cifrado (ataque de texto conhecido) e sabe o tamanho k da chave. Ele testa as 26<sup>k</sup> chaves em ordem (AA…A, AA…B, …), decifra o texto com cada uma e para quando o resultado bate. O teste roda no seu navegador, dividido entre os núcleos disponíveis. A taxa medida depende do navegador, do processador e do comprimento do texto; compare-a com a estimativa teórica, que supõe 10<sup>9</sup> chaves/s. O limite é k = 8: com k = 9 o pior caso já passa de 1,5 hora nessa taxa teórica.</p>
 <div class="card noprint">
   <div class="row">
     <label style="flex:2;min-width:200px">Texto original<input id="fbTxt" value="ATAQUE AO AMANHECER"></label>
@@ -96,7 +96,7 @@ async function calc(){
   const r=await fetch(`/api/espaco?n=${$('n').value}&k=${$('k').value}`), d=await r.json();
   if(!r.ok){$('N').textContent=d.erro;$('det').textContent='';return}
   $('N').textContent=fmt(d.N);
-  $('det').innerHTML=`${d.digitos} dígitos · ${d.bits} bits · força bruta a 10⁹ chaves/s: ${d.tempo}<br>Sem repetição A(n,k) = ${fmt(d.arranjo)} · Combinação C(n,k) = ${fmt(d.combinacao)}`;
+  $('det').replaceChildren(document.createTextNode(`${d.digitos} dígitos · ${d.bits} bits · força bruta estimada a 10⁹ chaves/s: ${d.tempo}`), document.createElement('br'), document.createTextNode(`Sem repetição A(n,k) = ${fmt(d.arranjo)} · Combinação C(n,k) = ${fmt(d.combinacao)}`));
 }
 async function cif(modo){
   const r=await fetch('/api/cifra',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:$('txt').value,chave:$('chv').value,modo})}), d=await r.json();
@@ -134,7 +134,10 @@ async function quebrar(){
       $('fbSt').textContent=`${fmt(String(tot))} de ${fmt(String(N))} chaves · ${tempo(t)} · ${fmt(String(Math.round(taxa)))} chaves/s · ${W} workers`;
       if(e.data.achou){
         parar();
-        $('fbRes').innerHTML=`<b>Chave encontrada: ${e.data.achou.map(v=>String.fromCharCode(65+v)).join('')}</b> em ${tempo(t)}, após ≈ ${fmt(String(tot))} chaves testadas.<br>${est} · pior caso na taxa medida: ${tempo(N/taxa)}.`;
+        const chaveEncontrada=e.data.achou.map(v=>String.fromCharCode(65+v)).join('');
+        const destaque=document.createElement('b');
+        destaque.textContent=`Chave encontrada: ${chaveEncontrada}`;
+        $('fbRes').replaceChildren(destaque, document.createTextNode(` em ${tempo(t)}, após ≈ ${fmt(String(tot))} chaves testadas.`), document.createElement('br'), document.createTextNode(`${est} · pior caso na taxa medida: ${tempo(N/taxa)}.`));
       }
     };
     wk.postMessage({c,p,k,de:Math.floor(26*w/W),ate:Math.floor(26*(w+1)/W)});
@@ -144,9 +147,11 @@ async function quebrar(){
 async function init(){
   calc();
   const t=await (await fetch('/api/testes')).json();
-  $('tt').innerHTML=t.map(x=>`<tr><td class="l">${x.teste}</td><td class="${x.ok?'ok':'no'}">${x.ok?'passou':'falhou'}</td></tr>`).join('');
+  const linhasTestes=t.map(x=>{const tr=document.createElement('tr'),nome=document.createElement('td'),resultado=document.createElement('td');nome.className='l';nome.textContent=x.teste;resultado.className=x.ok?'ok':'no';resultado.textContent=x.ok?'passou':'falhou';tr.append(nome,resultado);return tr;});
+  $('tt').replaceChildren(...linhasTestes);
   const b=await (await fetch('/api/tabela')).json();
-  $('tb').innerHTML=b.map(x=>`<tr><td>${x.k}</td><td class="n l">${fmt(x.N)}</td><td>${x.digitos}</td><td>${x.bits}</td><td>${x.tempo}</td></tr>`).join('');
+  const linhasTabela=b.map(x=>{const tr=document.createElement('tr');for(const [valor,classe] of [[x.k,''],[fmt(x.N),'n l'],[x.digitos,''],[x.bits,''],[x.tempo,'']]){const td=document.createElement('td');td.className=classe;td.textContent=valor;tr.append(td);}return tr;});
+  $('tb').replaceChildren(...linhasTabela);
 }
 init();
 </script></body></html>
