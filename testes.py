@@ -48,13 +48,19 @@ def executar_testes_api() -> list:
 
     cliente = app.test_client()
     casos = []
-    for nome, resposta in (
-        ("API rejeita JSON malformado", cliente.post("/api/cifra", data="{", content_type="application/json")),
-        ("API rejeita corpo que não é objeto", cliente.post("/api/cifra", json=[1])),
-        ("API rejeita modo desconhecido", cliente.post("/api/cifra", json={"texto": "oi", "chave": "A", "modo": "outro"})),
-        ("API rejeita texto que não é string", cliente.post("/api/cifra", json={"texto": 1, "chave": "A", "modo": "cifrar"})),
-    ):
-        casos.append({"teste": nome, "ok": resposta.status_code == 400, "detalhe": f"HTTP {resposta.status_code}"})
+    verificacoes = (
+        ("API cifra texto válido", cliente.post("/api/cifra", json={"texto": "ATTACKATDAWN", "chave": "LEMON", "modo": "cifrar"}), 200, "LXFOPVEFRNHR"),
+        ("API decifra texto válido", cliente.post("/api/cifra", json={"texto": "LXFOPVEFRNHR", "chave": "LEMON", "modo": "decifrar"}), 200, "ATTACKATDAWN"),
+        ("API rejeita JSON malformado", cliente.post("/api/cifra", data="{", content_type="application/json"), 400, None),
+        ("API rejeita corpo que não é objeto", cliente.post("/api/cifra", json=[1]), 400, None),
+        ("API rejeita modo desconhecido", cliente.post("/api/cifra", json={"texto": "oi", "chave": "A", "modo": "outro"}), 400, None),
+        ("API rejeita texto que não é string", cliente.post("/api/cifra", json={"texto": 1, "chave": "A", "modo": "cifrar"}), 400, None),
+    )
+    for nome, resposta, status_esperado, resultado_esperado in verificacoes:
+        ok = resposta.status_code == status_esperado
+        if resultado_esperado is not None:
+            ok = ok and resposta.get_json().get("resultado") == resultado_esperado
+        casos.append({"teste": nome, "ok": ok, "detalhe": f"HTTP {resposta.status_code}"})
     return casos
 
 
