@@ -26,11 +26,46 @@ def executar_testes() -> list:
         except ValueError:
             ok = True
         t(f"Entrada inválida {entrada} gera erro", ok)
+    t("Arranjo com k > n vale zero", cifras.chaves_sem_repeticao(2, 3) == 0)
+    t("Chave sem letras A-Z gera erro",
+      _gera_value_error(lambda: cifras.cifrar("texto", "123!")))
+    t("Texto vazio é aceito", cifras.cifrar("", "CHAVE") == "")
+
+    return casos
+
+
+def _gera_value_error(funcao):
+    try:
+        funcao()
+    except ValueError:
+        return True
+    return False
+
+
+def executar_testes_api() -> list:
+    # Import local para evitar ciclo: app importa este módulo para expor a rota /api/testes.
+    from app import app
+
+    cliente = app.test_client()
+    casos = []
+    verificacoes = (
+        ("API cifra texto válido", cliente.post("/api/cifra", json={"texto": "ATTACKATDAWN", "chave": "LEMON", "modo": "cifrar"}), 200, "LXFOPVEFRNHR"),
+        ("API decifra texto válido", cliente.post("/api/cifra", json={"texto": "LXFOPVEFRNHR", "chave": "LEMON", "modo": "decifrar"}), 200, "ATTACKATDAWN"),
+        ("API rejeita JSON malformado", cliente.post("/api/cifra", data="{", content_type="application/json"), 400, None),
+        ("API rejeita corpo que não é objeto", cliente.post("/api/cifra", json=[1]), 400, None),
+        ("API rejeita modo desconhecido", cliente.post("/api/cifra", json={"texto": "oi", "chave": "A", "modo": "outro"}), 400, None),
+        ("API rejeita texto que não é string", cliente.post("/api/cifra", json={"texto": 1, "chave": "A", "modo": "cifrar"}), 400, None),
+    )
+    for nome, resposta, status_esperado, resultado_esperado in verificacoes:
+        ok = resposta.status_code == status_esperado
+        if resultado_esperado is not None:
+            ok = ok and resposta.get_json().get("resultado") == resultado_esperado
+        casos.append({"teste": nome, "ok": ok, "detalhe": f"HTTP {resposta.status_code}"})
     return casos
 
 
 if __name__ == "__main__":
-    for c in executar_testes():
+    for c in executar_testes() + executar_testes_api():
         print("OK  " if c["ok"] else "FALHA", c["teste"])
     with open("resultados.csv", "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=["n", "k", "N", "digitos", "bits", "tempo"])
